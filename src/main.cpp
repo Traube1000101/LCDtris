@@ -10,6 +10,9 @@ bool get_cell(int, int);
 void set_cell(int, int, bool);
 void render();
 void randomizeBoard(float);
+inline char bitsToChar(bool, bool);
+void lcdWriteCell(int, int, char);
+void renderCellPairToLcd(int, int, bool, bool);
 
 #define WIDTH 8
 #define HEIGHT 20
@@ -28,9 +31,20 @@ void set_cell(int x, int y, bool value) { board[y * WIDTH + x] = value; }
 OneButton *button[] = {new OneButton(D0, true, true),
                        new OneButton(D1, true, true)};
 
-void setup() {
+// Buffer holding last written chars
+char shadow[WIDTH / 2][HEIGHT];
+
+void lcdInit() {
   lcd.init();
   lcd.backlight();
+  // Initialize with spaces
+  for (int r = 0; r < WIDTH / 2; ++r)
+    for (int c = 0; c < HEIGHT; ++c)
+      shadow[r][c] = ' ';
+}
+
+void setup() {
+  lcdInit();
 
   // Create left & right block chars
   for (int i = 0; i < 2; i++) {
@@ -40,7 +54,7 @@ void setup() {
 }
 
 void setup1() {
-  button[0]->attachClick([]() { randomizeBoard(0.1); });
+  button[0]->attachClick([]() { randomizeBoard(0.05); });
   button[1]->attachClick([]() { board.reset(); });
 }
 
@@ -53,7 +67,7 @@ void loop() {
 
   if (unsigned long currentMicros = millis();
       currentMicros - lastMicrosPhysics >= PHYSICS_DELAY) {
-    randomizeBoard(0.1);
+    randomizeBoard(0.05);
     lastMicrosPhysics = currentMicros;
   }
   if (unsigned long currentMicros = millis();
@@ -70,32 +84,13 @@ void loop1() {
 
 void render() {
   for (int row = 0; row < 4; ++row) {
-    lcd.setCursor(0, row);
-
     int xLeft = row * 2;
     int xRight = xLeft + 1;
-
     for (int col = 0; col < 20; ++col) {
-
       int y = col;
-
       bool leftBit = (xLeft < WIDTH && y < HEIGHT) ? get_cell(xLeft, y) : false;
-      bool rightBit =
-          (xRight < WIDTH && y < HEIGHT) ? get_cell(xRight, y) : false;
-
-      char charToPrint;
-
-      if (!leftBit && !rightBit) {
-        charToPrint = ' ';
-      } else if (leftBit && !rightBit) {
-        charToPrint = LEFT_BLOCK;
-      } else if (!leftBit && rightBit) {
-        charToPrint = RIGHT_BLOCK;
-      } else {
-        charToPrint = DOUBLE_BLOCK;
-      }
-
-      lcd.write(charToPrint);
+      bool rightBit = (xRight < WIDTH && y < HEIGHT) ? get_cell(xRight, y) : false;
+      renderCellPairToLcd(xLeft, y, leftBit, rightBit);
     }
   }
 }
@@ -104,8 +99,29 @@ void randomizeBoard(float fillProbability) {
   for (int i = 0; i < WIDTH * HEIGHT; ++i) {
     float r = random(1000) / 1000.0;
     if (r < fillProbability) {
-      bool val = random(2);
-      board[i] = val;
+      if(random(2) == 0);
+      board[i] = true;
     }
   }
 }
+
+inline char bitsToChar(bool leftBit, bool rightBit) {
+  static constexpr char lut[4] = { ' ', 1, 0, (char)255 };
+  return lut[(leftBit << 1) | rightBit];
+}
+
+void lcdWriteCell(int col, int row, char ch) {
+  if (col < 0 || col >= HEIGHT || row < 0 || row >= WIDTH / 2) return;
+  if (shadow[row][col] == ch) return;             // skip if unchanged
+  lcd.setCursor(col, row);
+  lcd.write(ch);
+  shadow[row][col] = ch;
+}
+
+void renderCellPairToLcd(int xLeft, int y, bool leftBit, bool rightBit) {
+  int row = xLeft / 2;
+  int col = y;
+  char out = bitsToChar(leftBit, rightBit);
+  lcdWriteCell(col, row, out);
+}
+
