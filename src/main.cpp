@@ -37,20 +37,33 @@ void setup() {
     lcd.createChar(i, blocks[i]);
     delay(50);
   }
-
-  button[0]->attachClick([]() {
-    randomizeBoard(0.5);
-    render();
-  });
-  button[1]->attachClick([]() { lcd.clear(); });
-
-  pinMode(LED_BUILTIN, OUTPUT);
-
-  randomizeBoard(0.5);
-  render();
 }
 
+void setup1() {
+  button[0]->attachClick([]() { randomizeBoard(0.1); });
+  button[1]->attachClick([]() { board.reset(); });
+}
+
+// Delays in milliseconds
+#define RENDER_DELAY 100
+#define PHYSICS_DELAY 1000
+
 void loop() {
+  static unsigned long lastMicrosRender = 0, lastMicrosPhysics = 0;
+
+  if (unsigned long currentMicros = millis();
+      currentMicros - lastMicrosPhysics >= PHYSICS_DELAY) {
+    randomizeBoard(0.1);
+    lastMicrosPhysics = currentMicros;
+  }
+  if (unsigned long currentMicros = millis();
+      currentMicros - lastMicrosRender >= RENDER_DELAY) {
+    render();
+    lastMicrosRender = currentMicros;
+  }
+}
+
+void loop1() {
   button[0]->tick();
   button[1]->tick();
 }
@@ -87,14 +100,12 @@ void render() {
   }
 }
 
-void randomizeBoard(float fillProbability = 0.5) {
+void randomizeBoard(float fillProbability) {
   for (int i = 0; i < WIDTH * HEIGHT; ++i) {
     float r = random(1000) / 1000.0;
     if (r < fillProbability) {
       bool val = random(2);
       board[i] = val;
-    } else {
-      board[i] = 0;
     }
   }
 }
