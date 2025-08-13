@@ -11,9 +11,6 @@ void set_cell(int, int, bool);
 void render();
 void randomizeBoard(float);
 
-OneButton *button[] = {new OneButton(D0, true, true),
-                       new OneButton(D1, true, true)};
-
 #define WIDTH 8
 #define HEIGHT 20
 LiquidCrystal_I2C lcd(0x27, HEIGHT, WIDTH / 2);
@@ -27,6 +24,9 @@ uint8_t blocks[][8] = {{BLOCKS(0x0, 0xff)}, {BLOCKS(0xff, 0x0)}};
 bitset<WIDTH * HEIGHT> board;
 bool get_cell(int x, int y) { return board[y * WIDTH + x]; }
 void set_cell(int x, int y, bool value) { board[y * WIDTH + x] = value; }
+
+OneButton *button[] = {new OneButton(D0, true, true),
+                       new OneButton(D1, true, true)};
 
 void setup() {
   lcd.init();
@@ -66,12 +66,9 @@ void render() {
 
       int y = col;
 
-      bool leftBit = (xLeft < WIDTH && y < HEIGHT)
-                         ? get_cell(xLeft, y)
-                         : false;
-      bool rightBit = (xRight < WIDTH && y < HEIGHT)
-                          ? get_cell(xRight, y)
-                          : false;
+      bool leftBit = (xLeft < WIDTH && y < HEIGHT) ? get_cell(xLeft, y) : false;
+      bool rightBit =
+          (xRight < WIDTH && y < HEIGHT) ? get_cell(xRight, y) : false;
 
       char charToPrint;
 
