@@ -101,7 +101,6 @@ void randomizeBoard(float fillProbability) {
     float r = random(1000) / 1000.0;
     if (r < fillProbability) {
       if (random(2) == 0)
-        ;
       board[i] = true;
     }
   }
