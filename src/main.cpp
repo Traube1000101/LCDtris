@@ -11,8 +11,7 @@ void set_cell(int, int, bool);
 void render();
 void randomizeBoard(float);
 inline char bitsToChar(bool, bool);
-void lcdWriteCell(int, int, char);
-void renderCellPairToLcd(int, int, bool, bool);
+void lcdWriteBlock(int, int, char);
 
 #define WIDTH 8
 #define HEIGHT 20
@@ -20,7 +19,7 @@ LiquidCrystal_I2C lcd(0x27, HEIGHT, WIDTH / 2);
 
 #define LEFT_BLOCK 0
 #define RIGHT_BLOCK 1
-#define DOUBLE_BLOCK 255
+#define FULL_BLOCK 255
 #define BLOCKS(x, y) x, x, x, x, y, y, y, y
 uint8_t blocks[][8] = {{BLOCKS(0x0, 0xff)}, {BLOCKS(0xff, 0x0)}};
 
@@ -89,8 +88,10 @@ void render() {
     for (int col = 0; col < 20; ++col) {
       int y = col;
       bool leftBit = (xLeft < WIDTH && y < HEIGHT) ? get_cell(xLeft, y) : false;
-      bool rightBit = (xRight < WIDTH && y < HEIGHT) ? get_cell(xRight, y) : false;
-      renderCellPairToLcd(xLeft, y, leftBit, rightBit);
+      bool rightBit =
+          (xRight < WIDTH && y < HEIGHT) ? get_cell(xRight, y) : false;
+      char out = bitsToChar(leftBit, rightBit);
+      lcdWriteBlock(y, xLeft / 2, out);
     }
   }
 }
@@ -99,29 +100,23 @@ void randomizeBoard(float fillProbability) {
   for (int i = 0; i < WIDTH * HEIGHT; ++i) {
     float r = random(1000) / 1000.0;
     if (r < fillProbability) {
-      if(random(2) == 0);
+      if (random(2) == 0)
+        ;
       board[i] = true;
     }
   }
 }
 
 inline char bitsToChar(bool leftBit, bool rightBit) {
-  static constexpr char lut[4] = { ' ', 1, 0, (char)255 };
+  static constexpr char lut[4] = {' ', LEFT_BLOCK, RIGHT_BLOCK, FULL_BLOCK};
   return lut[(leftBit << 1) | rightBit];
 }
 
-void lcdWriteCell(int col, int row, char ch) {
-  if (col < 0 || col >= HEIGHT || row < 0 || row >= WIDTH / 2) return;
-  if (shadow[row][col] == ch) return;             // skip if unchanged
+void lcdWriteBlock(int col, int row, char ch) {
+  if (col < 0 || col >= HEIGHT || row < 0 || row >= WIDTH / 2 ||
+      shadow[row][col] == ch)
+    return;
   lcd.setCursor(col, row);
   lcd.write(ch);
   shadow[row][col] = ch;
 }
-
-void renderCellPairToLcd(int xLeft, int y, bool leftBit, bool rightBit) {
-  int row = xLeft / 2;
-  int col = y;
-  char out = bitsToChar(leftBit, rightBit);
-  lcdWriteCell(col, row, out);
-}
-
